@@ -203,6 +203,50 @@ export const resetController = async (req, res) => {
   }
 };
 
+export const newPassController=async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const token = req.headers.authorization;
+
+  if (!token) {
+    return res.status(401).send({
+      success: false,
+      message: "Authorization token is required",
+    });
+  }
+
+  try {
+    const decoded = JWT.verify(token, process.env.JWT_SECRET);
+    const userId = decoded._id;
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).send({
+        success: false,
+        message: "Old password is incorrect",
+      });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).send({
+      success: true,
+      message: "Password has been reset successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Internal Server Error",
+      error,
+    });
+  }
+};
+
 // export const postPassController = async (req, res) => {
 //   try {
 //     const token = req.params.token;
