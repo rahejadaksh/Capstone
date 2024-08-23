@@ -104,16 +104,16 @@ export const registerController = async (req, res) => {
 //POST LOGIN
 export const loginController = async (req, res) => {
   try {
-    const { rollNo, password } = req.body;
+    const { email, password } = req.body;
     //validation
-    if (!rollNo || !password) {
+    if (!email || !password) {
       return res.status(404).send({
         success: false,
         message: "Please enter the credentials",
       });
     }
     //check user
-    const user = await userModel.findOne({ rollNo });
+    const user = await userModel.findOne({ email });
     if (!user) {
       return res.status(404).send({
         success: false,
@@ -140,6 +140,7 @@ export const loginController = async (req, res) => {
       user: {
         name: user.name,
         rollNo: user.rollNo,
+        email: user.email
       },
       token,
     });
