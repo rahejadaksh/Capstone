@@ -1,12 +1,14 @@
 import userModel from "../models/userModel.js";
 import passwordResetModel from "../models/passwordResetModel.js";
-import { v4 } from "uuid";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import JWT from "jsonwebtoken";
 
 dotenv.config();
+const saltRounds = 10;
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -156,105 +158,85 @@ export const loginController = async (req, res) => {
 
 //POST RESET
 export const resetController = async (req, res) => {
+  const { email } = req.body;
   try {
-    const user = await userModel.findOne({ email: req.body.email });
+    const user = await userModel.findOne({ email });
     if (!user) {
-      res.status(200).send({
+      return res.status(404).send({
         success: false,
         message: "User not found",
-        user,
       });
-    } else {
-      const token = v4().toString().replace(/-/g, "");
-      passwordResetModel
-        .updateOne(
-          {
-            user: user._id,
-          },
-          {
-            user: user._id,
-            token: token,
-          },
-          {
-            upsert: true,
-          }
-        )
-        .then(async (updateResponse) => {
-          /* Send email to user containing password reset link. */
-          const resetLink = `${process.env.DOMAIN}/reset-confirm/${token}`;
-          var mailOptions = {
-            from: "2dead1shot2@gmail.com",
-            to: `${user.email}`,
-            subject: "Set Password",
-            text: `Here is your link to set your new password: ${resetLink}`,
-          };
-          transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-              res.status(500).send({
-                success: false,
-                message: "Error in sending mail",
-                error,
-              });
-            }
-          });
-          res.status(200).send({
-            success: true,
-            message: "Mail sent",
-            token: token,
-          });
-        })
-        .catch((error) => {
-          res.status(500).send({
-            success: false,
-            message: "Error in sending mail",
-            error,
-          });
-        });
     }
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      success: false,
-      message: "Error in resetting password",
-      error,
-    });
-  }
-};
-
-export const postPassController = async (req, res) => {
-  try {
-    const token = req.params.token;
-    const passwordReset = await passwordResetModel.findOne({ token });
-
-    /* Update user */
-    let user = await userModel.findOne({ _id: passwordReset.user });
-    user.password = req.body.password;
-
-    user
-      .save()
-      .then(async (savedUser) => {
-        await passwordResetModel.deleteOne({ _id: passwordReset._id });
-        res.status(200).send({
-          success: true,
-          message: "Password reset successfully",
-        });
-      })
-      .catch((error) => {
-        res.status(500).send({
+    const randomPassword = crypto.randomBytes(8).toString("hex");
+    // const randomPassword= "admin"
+    console.log(randomPassword)
+    const hashedPassword = await bcrypt.hash(randomPassword, saltRounds);
+    user.password = hashedPassword;
+    await user.save();
+    const mailOptions = {
+      from: "2dead1shot2@gmail.com",
+      to: user.email,
+      subject: "Set Password",
+      text: `Here is your new password: ${randomPassword}`,
+    };
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        return res.status(500).send({
           success: false,
-          message: "Failed to reset password",
+          message: "Error in sending mail",
           error,
         });
-      });
+      } else {
+        return res.status(200).send({
+          success: true,
+          message: "New password sent to your email",
+          password: randomPassword
+        });
+      }
+    });
   } catch (error) {
-    console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error in resetting password",
+      message: "Internal Server Error",
       error,
     });
   }
 };
+
+// export const postPassController = async (req, res) => {
+//   try {
+//     const token = req.params.token;
+//     const passwordReset = await passwordResetModel.findOne({ token });
+
+//     /* Update user */
+//     let user = await userModel.findOne({ _id: passwordReset.user });
+//     user.password = req.body.password;
+
+//     user
+//       .save()
+//       .then(async (savedUser) => {
+//         await passwordResetModel.deleteOne({ _id: passwordReset._id });
+//         res.status(200).send({
+//           success: true,
+//           message: "Password reset successfully",
+//         });
+//       })
+//       .catch((error) => {
+//         res.status(500).send({
+//           success: false,
+//           message: "Failed to reset password",
+//           error,
+//         });
+//       });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send({
+//       success: false,
+//       message: "Error in resetting password",
+//       error,
+//     });
+//   }
+// };
 
 //forgotPasswordController
 // export const forgotPasswordController = async (req, res) => {

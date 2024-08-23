@@ -3,7 +3,7 @@ import {
     registerController,
     loginController,
     resetController,
-    postPassController
+    // postPassController
 } from "../controller/authController.js";
 
 //router object
@@ -17,6 +17,6 @@ router.post("/login", loginController);
 
 //FORGOT PASSWORD
 router.post("/reset",resetController);
-router.post("/reset-confirm/:token",postPassController)
+// router.post("/reset-confirm/:token",postPassController)
 
 export default router;

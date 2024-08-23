@@ -52,15 +52,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.pre('save', async function(next) {
-    if (this.isNew || this.isModified('password')) {
-        try {
-            this.password = await bcrypt.hash(this.password, saltRounds);
-        } catch (error) {
-            return next(error);
-        }
-    }
-    next();
-});
-
 export default mongoose.model("users", userSchema);
