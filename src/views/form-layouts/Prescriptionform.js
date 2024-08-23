@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Button, TextField, Typography, Grid } from '@mui/material'
 import { makeStyles } from '@mui/styles'
-import { enUS } from 'date-fns/locale'
 
 const useStyles = makeStyles({
   formControl: {
@@ -27,6 +26,9 @@ const useStyles = makeStyles({
     width: '30px',
     height: '30px',
     marginLeft: '10px'
+  },
+  disabledTextField: {
+    color: 'black' // Setting text color to black
   }
 })
 
@@ -45,20 +47,49 @@ const Prescriptionform = () => {
 
   const handleFormSubmit = async event => {
     event.preventDefault()
-    // Simulate fetching patient data using userId
-    const mockPatientData = {
-      name: 'John Doe',
-      rollNo: '12345',
-      age: 25,
-      gender: 'Male'
+    try {
+      const response = await fetch('http://localhost:8000/api/student/rollno', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rollNo: userId })
+      })
+      if (!response.ok) throw new Error('Failed to fetch student data')
+      const data = await response.json()
+      setPatientData(data)
+      setFetchClicked(true)
+    } catch (error) {
+      console.error('Error fetching student data:', error)
     }
-    setPatientData(mockPatientData)
-    setFetchClicked(true)
   }
 
   const handlePrescriptionSubmit = async event => {
     event.preventDefault()
-    console.log('Prescription submitted:', { prescription })
+    try {
+      const medicines = prescription.reduce((acc, { name, description }) => {
+        if (name) acc[name] = description
+        return acc
+      }, {})
+      const token = localStorage.getItem('token')
+      console.log(JSON.stringify({ medicines, rollNo: userId }))
+      console.log(token)
+
+      const response = await fetch('http://localhost:8000/api/prescription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${token}`
+        },
+        body: JSON.stringify({ medicines, rollNo: userId })
+      })
+      if (!response.ok) throw new Error('Failed to submit prescription')
+      const result = await response.json()
+      console.log('Prescription submitted successfully:', result)
+      setPrescription([{ name: '', description: '' }]) // Clear prescription fields
+    } catch (error) {
+      console.error('Error submitting prescription:', error)
+    }
   }
 
   const handleAddRow = () => {
@@ -73,18 +104,18 @@ const Prescriptionform = () => {
 
   return (
     <div>
-      <Typography variant='h4' component='h1' gutterBottom>
-        Patient Information
-      </Typography>
+      <Typography variant='h5' sx={{marginBottom:"15px"}}>
+            Add Prescription
+        </Typography>
       <form onSubmit={handleFormSubmit} className={classes.gridContainer}>
         <Grid item xs={6} display='flex' alignItems='center'>
           <TextField
             className={classes.formControl}
-            label='User ID'
+            label='Roll No'
             value={userId}
             onChange={handleUserIdChange}
             required
-            style={{ flex: 1 }}
+            sx={{ width: '100%' }}
             variant='outlined'
             inputProps={{ maxLength: 20 }}
           />
@@ -92,29 +123,36 @@ const Prescriptionform = () => {
             type='submit'
             variant='contained'
             color='primary'
-            className={classes.button}
             style={{ marginLeft: 10 }}
+            sx={{ width: '40%', height: '50%' }}
           >
-            Fetch Patient Data
+            Get Data
           </Button>
         </Grid>
       </form>
       {fetchClicked && patientData && (
         <>
-          <Typography variant='h5' component='h2' gutterBottom>
+          <Typography variant='h5' component='h2' gutterBottom sx={{ marginTop: 10 }}>
             Patient Details
           </Typography>
           <form>
             <Grid container className={classes.gridContainer}>
               <Grid item xs={6}>
-                <TextField className={classes.formControl} label='Name' value={patientData.name} disabled fullWidth />
+                <TextField
+                  className={classes.formControl}
+                  label='Name'
+                  value={patientData.name}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
+                  fullWidth
+                  style={{ color: 'white' }}
+                />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={6} style={{color:"white"}}>
                 <TextField
                   className={classes.formControl}
                   label='Roll No'
                   value={patientData.rollNo}
-                  disabled
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
                   fullWidth
                 />
               </Grid>
@@ -124,27 +162,53 @@ const Prescriptionform = () => {
                   label='Age'
                   value={patientData.age}
                   type='number'
-                  disabled
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
                   fullWidth
                 />
               </Grid>
               <Grid item xs={6}>
                 <TextField
                   className={classes.formControl}
-                  label='Gender'
-                  value={patientData.gender}
-                  disabled
+                  label='Email'
+                  value={patientData.email}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={6} className={classes.formControl}>
+              <Grid item xs={6}>
                 <TextField
                   className={classes.formControl}
-                  label='Date'
-                  value={currentDate}
-                  disabled
+                  label='Hostel'
+                  value={patientData.hostel}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
                   fullWidth
-                  variant='outlined'
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  className={classes.formControl}
+                  label='Room No'
+                  value={patientData.roomNo}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  className={classes.formControl}
+                  label='Phone No'
+                  value={patientData.phoneNo}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  className={classes.formControl}
+                  label='Blood Group'
+                  value={patientData.bloodGroup}
+                  InputProps={{ readOnly: true, classes: { input: classes.disabledTextField } }}
+                  fullWidth
                 />
               </Grid>
             </Grid>
@@ -152,7 +216,7 @@ const Prescriptionform = () => {
           <Typography variant='h5' component='h2' gutterBottom>
             Prescription
           </Typography>
-          <form>
+          <form onSubmit={handlePrescriptionSubmit}>
             {prescription.map((row, index) => (
               <Grid container key={index} className={classes.gridContainer}>
                 <Grid item xs={6}>
@@ -165,7 +229,6 @@ const Prescriptionform = () => {
                       newPrescription[index].name = event.target.value
                       setPrescription(newPrescription)
                     }}
-                    // style={{ width: 200 }}
                     fullWidth
                     variant='outlined'
                   />
@@ -183,7 +246,6 @@ const Prescriptionform = () => {
                     fullWidth
                     multiline
                     rows={1}
-                    // style={{ width: 850 }}
                     variant='outlined'
                   />
                 </Grid>
@@ -206,17 +268,17 @@ const Prescriptionform = () => {
                 </Grid>
               </Grid>
             ))}
+            <Button
+              type='submit'
+              variant='contained'
+              color='primary'
+              fullWidth
+              disabled={prescription.some(row => row.name === '' || row.description === '')}
+              sx={{ marginTop: 5 }}
+            >
+              Submit Prescription
+            </Button>
           </form>
-          <Button
-            type='submit'
-            variant='contained'
-            color='primary'
-            fullWidth
-            onClick={handlePrescriptionSubmit}
-            disabled={prescription.some(row => row.name === '' || row.description === '')}
-          >
-            Submit Prescription
-          </Button>
         </>
       )}
     </div>

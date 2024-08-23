@@ -18,7 +18,7 @@ router.get("/student",requiresStudent,getPrescriptionStudentController)
 //GET ONE PRESCRIPTION FOR A STUDENT (Access by a student)
 router.get("/student/:prescriptionId",requiresStudent,getPrescriptionByIdStudentController)
 //GET PRESCRIPTION FOR A STUDENT (Access by a doctor)
-router.get("/doctor/:id",requiresDoctor,getPrescriptionDoctorController)
+router.post("/doctor",requiresDoctor,getPrescriptionDoctorController)
 //GET ONE PRESCRIPTION FOR A STUDENT (Access by a doctor)
 router.get("/doctor/:id/:prescriptionId",requiresDoctor,getPrescriptionByIdDoctorController)
 
